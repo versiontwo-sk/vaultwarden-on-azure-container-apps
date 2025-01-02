@@ -1,0 +1,98 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "westeurope",
+      "metadata": { "description": "The Azure region to install it." }
+    },
+    "baseName": {
+      "type": "string",
+      "metadata": { "description": "Base name for all resources." }
+    },
+    "adminToken": {
+      "type": "securestring",
+      "metadata": { "description": "The password to access the /admin page." }
+    },
+    "smtpHost": {
+      "type": "string",
+      "metadata": { "description": "The hostname of the SMTP server." }
+    },
+    "smtpFrom": {
+      "type": "string",
+      "metadata": { "description": "The sender email address for SMTP." }
+    },
+    "smtpPort": {
+      "type": "string",
+      "defaultValue": "587",
+      "metadata": { "description": "SMTP server port (default: 587)." }
+    },
+    "smtpSecurity": {
+      "type": "string",
+      "defaultValue": "starttls",
+      "metadata": { "description": "SMTP security (starttls, force_tls, or off)." }
+    },
+    "smtpUsername": {
+      "type": "string",
+      "metadata": { "description": "SMTP username." }
+    },
+    "smtpPassword": {
+      "type": "securestring",
+      "metadata": { "description": "SMTP password." }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "[format('vaultwarden{0}', parameters('baseName'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+        "configuration": {
+          "secrets": [
+            {
+              "name": "admintoken",
+              "value": "[parameters('adminToken')]"
+            },
+            {
+              "name": "smtppassword",
+              "value": "[parameters('smtpPassword')]"
+            }
+          ],
+          "ingress": {
+            "external": true,
+            "allowInsecure": false,
+            "targetPort": 80,
+            "transport": "auto",
+            "traffic": [
+              {
+                "weight": 100,
+                "latestRevision": true
+              }
+            ]
+          }
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "vaultwarden",
+              "image": "docker.io/vaultwarden/server:latest",
+              "resources": {
+                "cpu": "0.25",
+                "memory": "0.5Gi"
+              },
+              "env": [
+                {
+                  "name": "ENABLE_DB_WAL",
+                  "value": "true"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
