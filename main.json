@@ -11,9 +11,9 @@
   "parameters": {
     "location": {
       "type": "string",
-      "defaultValue": "germanywestcentral",
+      "defaultValue": "westeurope",
       "metadata": {
-        "description": "The Azure region to install it"
+        "description": "The Azure region to install it (default: West Europe)"
       }
     },
     "baseName": {
@@ -28,17 +28,49 @@
         "description": "The password to access the /admin page of the Vaultwarden installation"
       }
     },
-    "sendgridSmtpPassword": {
+    "smtpHost": {
+      "type": "string",
+      "metadata": {
+        "description": "The hostname of the SMTP server."
+      }
+    },
+    "smtpFrom": {
+      "type": "string",
+      "metadata": {
+        "description": "The sender email address for SMTP."
+      }
+    },
+    "smtpPort": {
+      "type": "string",
+      "defaultValue": "587",
+      "metadata": {
+        "description": "The port of the SMTP server (default: 587 for STARTTLS)."
+      }
+    },
+    "smtpSecurity": {
+      "type": "string",
+      "defaultValue": "starttls",
+      "metadata": {
+        "description": "The security protocol for SMTP (starttls, force_tls, or off)."
+      }
+    },
+    "smtpUsername": {
+      "type": "string",
+      "metadata": {
+        "description": "The username for the SMTP server."
+      }
+    },
+    "smtpPassword": {
       "type": "securestring",
       "metadata": {
-        "description": "If you are using sendgrid as a mail provider, set this to your API Key. If you are using another mail provider you have to customize the template."
+        "description": "The password for the SMTP server."
       }
     },
     "enableVnetIntegrationWithAdditionalCosts": {
       "type": "bool",
       "defaultValue": true,
       "metadata": {
-        "description": "Enable VNet integration. NOTE: This will create additional components which produces additional costs."
+        "description": "Enable VNet integration. NOTE: This will create additional components which produce additional costs."
       }
     }
   },
@@ -189,19 +221,14 @@
         "configuration": {
           "secrets": [
             {
-              "name": "fileshare-connectionstring",
-              "value": "[format('DefaultEndpointsProtocol=https;AccountName={0};EndpointSuffix={1};AccountKey={2}', format('stgvaultwarden{0}', parameters('baseName')), environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName'))), '2023-01-01').keys[0].value)]"
-            },
-            {
               "name": "admintoken",
               "value": "[parameters('adminToken')]"
             },
             {
-              "name": "sendgridsmtppassword",
-              "value": "[parameters('sendgridSmtpPassword')]"
+              "name": "smtppassword",
+              "value": "[parameters('smtpPassword')]"
             }
           ],
-          "activeRevisionsMode": "Single",
           "ingress": {
             "external": true,
             "allowInsecure": false,
@@ -226,52 +253,28 @@
               },
               "env": [
                 {
-                  "name": "AZURE_STORAGEFILE_CONNECTIONSTRING",
-                  "secretRef": "fileshare-connectionstring"
-                },
-                {
-                  "name": "SIGNUPS_ALLOWED",
-                  "value": "false"
-                },
-                {
-                  "name": "ADMIN_TOKEN",
-                  "secretRef": "admintoken"
-                },
-                {
                   "name": "SMTP_HOST",
-                  "value": "smtp.sendgrid.net"
+                  "value": "[parameters('smtpHost')]"
                 },
                 {
                   "name": "SMTP_FROM",
-                  "value": "noreply@yourdomain.com"
+                  "value": "[parameters('smtpFrom')]"
                 },
                 {
                   "name": "SMTP_PORT",
-                  "value": "465"
+                  "value": "[parameters('smtpPort')]"
                 },
                 {
                   "name": "SMTP_SECURITY",
-                  "value": "force_tls"
+                  "value": "[parameters('smtpSecurity')]"
                 },
                 {
                   "name": "SMTP_USERNAME",
-                  "value": "apikey"
+                  "value": "[parameters('smtpUsername')]"
                 },
                 {
                   "name": "SMTP_PASSWORD",
-                  "secretRef": "sendgridsmtppassword"
-                },
-                {
-                  "name": "SMTP_AUTH_MECHANISM",
-                  "value": "Login"
-                },
-                {
-                  "name": "ENABLE_DB_WAL",
-                  "value": "true"
-                },
-                {
-                  "name": "SHOW_PASSWORD_HINT",
-                  "value": "false"
+                  "secretRef": "smtppassword"
                 }
               ],
               "volumeMounts": [
@@ -294,13 +297,7 @@
             "maxReplicas": 1
           }
         }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
-        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
-        "[resourceId('Microsoft.App/managedEnvironments/storages', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]",
-        "[resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName')))]"
-      ]
+      }
     }
   ]
 }
