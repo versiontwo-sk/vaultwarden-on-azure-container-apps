@@ -1,120 +1,54 @@
 {
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
   "contentVersion": "1.0.0.0",
-  "metadata": {
-    "_generator": {
-      "name": "bicep",
-      "version": "0.23.1.45101",
-      "templateHash": "12803863423709596004"
-    }
-  },
   "parameters": {
     "location": {
       "type": "string",
       "defaultValue": "westeurope",
-      "metadata": {
-        "description": "The Azure region to install it (default: West Europe)"
-      }
+      "metadata": { "description": "The Azure region to install it." }
     },
     "baseName": {
       "type": "string",
-      "metadata": {
-        "description": "Base name for all resources"
-      }
+      "metadata": { "description": "Base name for all resources." }
     },
     "adminToken": {
       "type": "securestring",
-      "metadata": {
-        "description": "The password to access the /admin page of the Vaultwarden installation"
-      }
+      "metadata": { "description": "The password to access the /admin page." }
     },
     "smtpHost": {
       "type": "string",
-      "metadata": {
-        "description": "The hostname of the SMTP server."
-      }
+      "metadata": { "description": "The hostname of the SMTP server." }
     },
     "smtpFrom": {
       "type": "string",
-      "metadata": {
-        "description": "The sender email address for SMTP."
-      }
+      "metadata": { "description": "The sender email address for SMTP." }
     },
     "smtpPort": {
       "type": "string",
       "defaultValue": "587",
-      "metadata": {
-        "description": "The port of the SMTP server (default: 587 for STARTTLS)."
-      }
+      "metadata": { "description": "SMTP server port (default: 587)." }
     },
     "smtpSecurity": {
       "type": "string",
       "defaultValue": "starttls",
-      "metadata": {
-        "description": "The security protocol for SMTP (starttls, force_tls, or off)."
-      }
+      "metadata": { "description": "SMTP security (starttls, force_tls, or off)." }
     },
     "smtpUsername": {
       "type": "string",
-      "metadata": {
-        "description": "The username for the SMTP server."
-      }
+      "metadata": { "description": "SMTP username." }
     },
     "smtpPassword": {
       "type": "securestring",
-      "metadata": {
-        "description": "The password for the SMTP server."
-      }
-    },
-    "enableVnetIntegrationWithAdditionalCosts": {
-      "type": "bool",
-      "defaultValue": true,
-      "metadata": {
-        "description": "Enable VNet integration. NOTE: This will create additional components which produce additional costs."
-      }
+      "metadata": { "description": "SMTP password." }
     }
   },
   "resources": [
-    {
-      "type": "Microsoft.Network/virtualNetworks",
-      "apiVersion": "2023-05-01",
-      "name": "[format('vnet{0}', parameters('baseName'))]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "addressSpace": {
-          "addressPrefixes": ["10.0.0.0/16"]
-        },
-        "subnets": [
-          {
-            "name": "default",
-            "properties": {
-              "addressPrefix": "10.0.0.0/23",
-              "serviceEndpoints": [
-                {
-                  "service": "Microsoft.Storage",
-                  "locations": ["[parameters('location')]"]
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "condition": "[parameters('enableVnetIntegrationWithAdditionalCosts')]"
-    },
     {
       "type": "Microsoft.OperationalInsights/workspaces",
       "apiVersion": "2022-10-01",
       "name": "[format('law{0}', parameters('baseName'))]",
       "location": "[parameters('location')]",
-      "properties": {
-        "sku": {
-          "name": "PerGB2018"
-        },
-        "retentionInDays": 30,
-        "workspaceCapping": {
-          "dailyQuotaGb": 1
-        }
-      }
+      "properties": { "sku": { "name": "PerGB2018" }, "retentionInDays": 30 }
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
@@ -122,9 +56,7 @@
       "name": "[format('stgvaultwarden{0}', parameters('baseName'))]",
       "location": "[parameters('location')]",
       "kind": "StorageV2",
-      "sku": {
-        "name": "Standard_LRS"
-      },
+      "sku": { "name": "Standard_LRS" },
       "properties": {
         "allowBlobPublicAccess": false,
         "minimumTlsVersion": "TLS1_2",
@@ -143,10 +75,7 @@
       "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
       "apiVersion": "2023-01-01",
       "name": "[format('{0}/{1}/{2}', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
-      "properties": {
-        "enabledProtocols": "SMB",
-        "shareQuota": 1024
-      },
+      "properties": { "enabledProtocols": "SMB", "shareQuota": 1024 },
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('stgvaultwarden{0}', parameters('baseName')), 'default')]"
       ]
@@ -157,10 +86,6 @@
       "name": "[format('managedenv-{0}-vaultwarden', parameters('baseName'))]",
       "location": "[parameters('location')]",
       "properties": {
-        "vnetConfiguration": {
-          "internal": false,
-          "infrastructureSubnetId": "[if(parameters('enableVnetIntegrationWithAdditionalCosts'), reference(resourceId('Microsoft.Network/virtualNetworks', format('vnet{0}', parameters('baseName'))), '2023-05-01').subnets[0].id, null())]"
-        },
         "appLogsConfiguration": {
           "destination": "log-analytics",
           "logAnalyticsConfiguration": {
@@ -170,8 +95,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.OperationalInsights/workspaces', format('law{0}', parameters('baseName')))]",
-        "[resourceId('Microsoft.Network/virtualNetworks', format('vnet{0}', parameters('baseName')))]"
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('law{0}', parameters('baseName')))]"
       ]
     },
     {
@@ -183,72 +107,28 @@
         "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
         "configuration": {
           "secrets": [
-            {
-              "name": "admintoken",
-              "value": "[parameters('adminToken')]"
-            },
-            {
-              "name": "smtppassword",
-              "value": "[parameters('smtpPassword')]"
-            }
+            { "name": "admintoken", "value": "[parameters('adminToken')]" },
+            { "name": "smtppassword", "value": "[parameters('smtpPassword')]" }
           ],
-          "ingress": {
-            "external": true,
-            "allowInsecure": false,
-            "targetPort": 80,
-            "traffic": [
-              {
-                "weight": 100,
-                "latestRevision": true
-              }
-            ]
-          }
+          "ingress": { "external": true, "allowInsecure": false, "targetPort": 80 },
+          "traffic": [{ "weight": 100, "latestRevision": true }]
         },
         "template": {
           "containers": [
             {
               "image": "docker.io/vaultwarden/server:latest",
               "name": "vaultwarden",
-              "resources": {
-                "cpu": "0.25",
-                "memory": "0.5Gi"
-              },
+              "resources": { "cpu": "0.25", "memory": "0.5Gi" },
               "env": [
-                {
-                  "name": "ENABLE_DB_WAL",
-                  "value": "true"
-                },
-                {
-                  "name": "SMTP_HOST",
-                  "value": "[parameters('smtpHost')]"
-                },
-                {
-                  "name": "SMTP_FROM",
-                  "value": "[parameters('smtpFrom')]"
-                },
-                {
-                  "name": "SMTP_PORT",
-                  "value": "[parameters('smtpPort')]"
-                },
-                {
-                  "name": "SMTP_SECURITY",
-                  "value": "[parameters('smtpSecurity')]"
-                },
-                {
-                  "name": "SMTP_USERNAME",
-                  "value": "[parameters('smtpUsername')]"
-                },
-                {
-                  "name": "SMTP_PASSWORD",
-                  "secretRef": "smtppassword"
-                }
+                { "name": "ENABLE_DB_WAL", "value": "true" },
+                { "name": "SMTP_HOST", "value": "[parameters('smtpHost')]" },
+                { "name": "SMTP_FROM", "value": "[parameters('smtpFrom')]" },
+                { "name": "SMTP_PORT", "value": "[parameters('smtpPort')]" },
+                { "name": "SMTP_SECURITY", "value": "[parameters('smtpSecurity')]" },
+                { "name": "SMTP_USERNAME", "value": "[parameters('smtpUsername')]" },
+                { "name": "SMTP_PASSWORD", "secretRef": "smtppassword" }
               ],
-              "volumeMounts": [
-                {
-                  "volumeName": "vaultwarden",
-                  "mountPath": "/data"
-                }
-              ]
+              "volumeMounts": [{ "volumeName": "vaultwarden", "mountPath": "/data" }]
             }
           ],
           "volumes": [
@@ -258,16 +138,9 @@
               "storageType": "AzureFile"
             }
           ],
-          "scale": {
-            "minReplicas": 0,
-            "maxReplicas": 1
-          }
+          "scale": { "minReplicas": 0, "maxReplicas": 1 }
         }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]"
-      ]
+      }
     }
   ]
 }
