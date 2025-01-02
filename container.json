@@ -87,8 +87,49 @@
                 {
                   "name": "ENABLE_DB_WAL",
                   "value": "true"
+                },
+                {
+                  "name": "ADMIN_TOKEN",
+                  "secretRef": "admintoken"
+                },
+                {
+                  "name": "SMTP_HOST",
+                  "value": "[parameters('smtpHost')]"
+                },
+                {
+                  "name": "SMTP_FROM",
+                  "value": "[parameters('smtpFrom')]"
+                },
+                {
+                  "name": "SMTP_PORT",
+                  "value": "[parameters('smtpPort')]"
+                },
+                {
+                  "name": "SMTP_SECURITY",
+                  "value": "[parameters('smtpSecurity')]"
+                },
+                {
+                  "name": "SMTP_USERNAME",
+                  "value": "[parameters('smtpUsername')]"
+                },
+                {
+                  "name": "SMTP_PASSWORD",
+                  "secretRef": "smtppassword"
+                }
+              ],
+              "volumeMounts": [
+                {
+                  "volumeName": "vaultwarden",
+                  "mountPath": "/data"
                 }
               ]
+            }
+          ],
+          "volumes": [
+            {
+              "name": "vaultwarden",
+              "storageName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
+              "storageType": "AzureFile"
             }
           ]
         }
