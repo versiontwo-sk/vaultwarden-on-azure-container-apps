@@ -275,6 +275,10 @@
                 {
                   "name": "SMTP_PASSWORD",
                   "secretRef": "smtppassword"
+                },
+                {
+                  "name": "ENABLE_DB_WAL",
+                  "value": "false"
                 }
               ],
               "volumeMounts": [
@@ -293,7 +297,7 @@
             }
           ],
           "scale": {
-            "minReplicas": 0,
+            "minReplicas": 1,
             "maxReplicas": 1
           }
         }
