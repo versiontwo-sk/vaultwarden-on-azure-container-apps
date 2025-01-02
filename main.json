@@ -179,7 +179,7 @@
       "volumes": [
         {
           "name": "vaultwarden",
-          "storageName": "vaultwarden",
+          "storageName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
           "storageType": "AzureFile"
         }
       ],
