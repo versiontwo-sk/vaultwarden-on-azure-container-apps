@@ -76,16 +76,13 @@
   },
   "resources": [
     {
-      "condition": "[parameters('enableVnetIntegrationWithAdditionalCosts')]",
       "type": "Microsoft.Network/virtualNetworks",
       "apiVersion": "2023-05-01",
       "name": "[format('vnet{0}', parameters('baseName'))]",
       "location": "[parameters('location')]",
       "properties": {
         "addressSpace": {
-          "addressPrefixes": [
-            "10.0.0.0/16"
-          ]
+          "addressPrefixes": ["10.0.0.0/16"]
         },
         "subnets": [
           {
@@ -95,15 +92,14 @@
               "serviceEndpoints": [
                 {
                   "service": "Microsoft.Storage",
-                  "locations": [
-                    "[parameters('location')]"
-                  ]
+                  "locations": ["[parameters('location')]"]
                 }
               ]
             }
           }
         ]
-      }
+      },
+      "condition": "[parameters('enableVnetIntegrationWithAdditionalCosts')]"
     },
     {
       "type": "Microsoft.OperationalInsights/workspaces",
@@ -115,14 +111,9 @@
           "name": "PerGB2018"
         },
         "retentionInDays": 30,
-        "features": {
-          "enableLogAccessUsingOnlyResourcePermissions": true
-        },
         "workspaceCapping": {
           "dailyQuotaGb": 1
-        },
-        "publicNetworkAccessForIngestion": "Enabled",
-        "publicNetworkAccessForQuery": "Enabled"
+        }
       }
     },
     {
@@ -137,18 +128,8 @@
       "properties": {
         "allowBlobPublicAccess": false,
         "minimumTlsVersion": "TLS1_2",
-        "allowSharedKeyAccess": true,
-        "supportsHttpsTrafficOnly": true,
-        "accessTier": "Hot",
-        "networkAcls": {
-          "defaultAction": "[if(parameters('enableVnetIntegrationWithAdditionalCosts'), 'Deny', 'Allow')]",
-          "bypass": "AzureServices",
-          "virtualNetworkRules": "[if(parameters('enableVnetIntegrationWithAdditionalCosts'), createArray(createObject('id', format('{0}/subnets/default', resourceId('Microsoft.Network/virtualNetworks', format('vnet{0}', parameters('baseName')))), 'action', 'Allow')), null())]"
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Network/virtualNetworks', format('vnet{0}', parameters('baseName')))]"
-      ]
+        "supportsHttpsTrafficOnly": true
+      }
     },
     {
       "type": "Microsoft.Storage/storageAccounts/fileServices",
@@ -194,24 +175,6 @@
       ]
     },
     {
-      "type": "Microsoft.App/managedEnvironments/storages",
-      "apiVersion": "2023-05-01",
-      "name": "[format('{0}/{1}', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]",
-      "properties": {
-        "azureFile": {
-          "accessMode": "ReadWrite",
-          "shareName": "vaultwarden",
-          "accountName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
-          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName'))), '2023-01-01').keys[0].value]"
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
-        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
-        "[resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName')))]"
-      ]
-    },
-    {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
       "name": "[format('vaultwarden{0}', parameters('baseName'))]",
@@ -233,7 +196,6 @@
             "external": true,
             "allowInsecure": false,
             "targetPort": 80,
-            "transport": "auto",
             "traffic": [
               {
                 "weight": 100,
@@ -252,6 +214,10 @@
                 "memory": "0.5Gi"
               },
               "env": [
+                {
+                  "name": "ENABLE_DB_WAL",
+                  "value": "true"
+                },
                 {
                   "name": "SMTP_HOST",
                   "value": "[parameters('smtpHost')]"
@@ -275,10 +241,6 @@
                 {
                   "name": "SMTP_PASSWORD",
                   "secretRef": "smtppassword"
-                },
-                {
-                  "name": "ENABLE_DB_WAL",
-                  "value": "false"
                 }
               ],
               "volumeMounts": [
@@ -297,11 +259,15 @@
             }
           ],
           "scale": {
-            "minReplicas": 1,
+            "minReplicas": 0,
             "maxReplicas": 1
           }
         }
-      }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]"
+      ]
     }
   ]
 }
