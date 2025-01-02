@@ -99,48 +99,100 @@
       ]
     },
     {
-      "type": "Microsoft.App/containerApps",
-      "apiVersion": "2023-05-01",
-      "name": "[format('vaultwarden{0}', parameters('baseName'))]",
-      "location": "[parameters('location')]",
-      "properties": {
-        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
-        "configuration": {
-          "secrets": [
-            { "name": "admintoken", "value": "[parameters('adminToken')]" },
-            { "name": "smtppassword", "value": "[parameters('smtpPassword')]" }
-          ],
-          "ingress": { "external": true, "allowInsecure": false, "targetPort": 80 },
-          "traffic": [{ "weight": 100, "latestRevision": true }]
+  "type": "Microsoft.App/containerApps",
+  "apiVersion": "2023-05-01",
+  "name": "[format('vaultwarden{0}', parameters('baseName'))]",
+  "location": "[parameters('location')]",
+  "properties": {
+    "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+    "configuration": {
+      "secrets": [
+        {
+          "name": "admintoken",
+          "value": "[parameters('adminToken')]"
         },
-        "template": {
-          "containers": [
-            {
-              "image": "docker.io/vaultwarden/server:latest",
-              "name": "vaultwarden",
-              "resources": { "cpu": "0.25", "memory": "0.5Gi" },
-              "env": [
-                { "name": "ENABLE_DB_WAL", "value": "true" },
-                { "name": "SMTP_HOST", "value": "[parameters('smtpHost')]" },
-                { "name": "SMTP_FROM", "value": "[parameters('smtpFrom')]" },
-                { "name": "SMTP_PORT", "value": "[parameters('smtpPort')]" },
-                { "name": "SMTP_SECURITY", "value": "[parameters('smtpSecurity')]" },
-                { "name": "SMTP_USERNAME", "value": "[parameters('smtpUsername')]" },
-                { "name": "SMTP_PASSWORD", "secretRef": "smtppassword" }
-              ],
-              "volumeMounts": [{ "volumeName": "vaultwarden", "mountPath": "/data" }]
-            }
-          ],
-          "volumes": [
-            {
-              "name": "vaultwarden",
-              "storageName": "vaultwarden",
-              "storageType": "AzureFile"
-            }
-          ],
-          "scale": { "minReplicas": 0, "maxReplicas": 1 }
+        {
+          "name": "smtppassword",
+          "value": "[parameters('smtpPassword')]"
         }
+      ],
+      "ingress": {
+        "external": true,
+        "allowInsecure": false,
+        "targetPort": 80,
+        "transport": "auto",
+        "traffic": [
+          {
+            "weight": 100,
+            "latestRevision": true
+          }
+        ]
+      }
+    },
+    "template": {
+      "containers": [
+        {
+          "name": "vaultwarden",
+          "image": "docker.io/vaultwarden/server:latest",
+          "resources": {
+            "cpu": "0.25",
+            "memory": "0.5Gi"
+          },
+          "env": [
+            {
+              "name": "ENABLE_DB_WAL",
+              "value": "true"
+            },
+            {
+              "name": "SMTP_HOST",
+              "value": "[parameters('smtpHost')]"
+            },
+            {
+              "name": "SMTP_FROM",
+              "value": "[parameters('smtpFrom')]"
+            },
+            {
+              "name": "SMTP_PORT",
+              "value": "[parameters('smtpPort')]"
+            },
+            {
+              "name": "SMTP_SECURITY",
+              "value": "[parameters('smtpSecurity')]"
+            },
+            {
+              "name": "SMTP_USERNAME",
+              "value": "[parameters('smtpUsername')]"
+            },
+            {
+              "name": "SMTP_PASSWORD",
+              "secretRef": "smtppassword"
+            }
+          ],
+          "volumeMounts": [
+            {
+              "volumeName": "vaultwarden",
+              "mountPath": "/data"
+            }
+          ]
+        }
+      ],
+      "volumes": [
+        {
+          "name": "vaultwarden",
+          "storageName": "vaultwarden",
+          "storageType": "AzureFile"
+        }
+      ],
+      "scale": {
+        "minReplicas": 0,
+        "maxReplicas": 1
       }
     }
+  },
+  "dependsOn": [
+    "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+    "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]"
+  ]
+}
   ]
 }
