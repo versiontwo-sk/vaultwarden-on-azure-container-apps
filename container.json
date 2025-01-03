@@ -44,6 +44,22 @@
   },
   "resources": [
     {
+      "type": "Microsoft.App/managedEnvironments/storages",
+      "apiVersion": "2023-05-01",
+      "name": "[format('{0}/{1}', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]",
+      "properties": {
+        "azureFile": {
+          "accessMode": "ReadWrite",
+          "shareName": "vaultwarden",
+          "accountName": "stgvaultwardenv2pass",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwardenv2pass'), '2023-01-01').keys[0].value]"
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', 'stgvaultwardenv2pass', 'default', 'vaultwarden')]"
+      ]
+    },
+    {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
       "name": "[format('vaultwarden{0}', parameters('baseName'))]",
@@ -128,7 +144,7 @@
           "volumes": [
             {
               "name": "vaultwarden",
-              "storageName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
+              "storageName": "vaultwarden",
               "storageType": "AzureFile"
             }
           ]
