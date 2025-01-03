@@ -196,7 +196,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', 'managedEnvironmentVaultWarden')]",
-        "[concat(resourceId('Microsoft.App/managedEnvironments', 'managedEnvironmentVaultWarden'), '/storages/vaultwardenStorage')]"
+        "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedEnvironmentVaultWarden', 'vaultwardenStorage')]"
       ]
     }
   ]
