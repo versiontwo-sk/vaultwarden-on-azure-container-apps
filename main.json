@@ -146,7 +146,7 @@
               "env": [
                 {
                   "name": "ENABLE_DB_WAL",
-                  "value": "true"
+                  "value": "false"
                 },
                 {
                   "name": "ADMIN_TOKEN",
