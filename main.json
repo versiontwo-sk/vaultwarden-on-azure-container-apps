@@ -89,7 +89,7 @@
     {
       "type": "Microsoft.App/managedEnvironments/storages",
       "apiVersion": "2023-05-01",
-      "name": "vaultwarden",
+      "name": "managedenv-vaultwarden/vaultwarden",
       "properties": {
         "azureFile": {
           "accessMode": "ReadWrite",
@@ -196,7 +196,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]",
-        "[concat(resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden'), '/storages/vaultwarden')]"
+        "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedenv-vaultwarden/vaultwarden')]"
       ]
     }
   ]
