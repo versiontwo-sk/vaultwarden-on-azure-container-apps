@@ -49,8 +49,18 @@
       "properties": {
         "allowBlobPublicAccess": true,
         "minimumTlsVersion": "TLS1_2",
-        "supportsHttpsTrafficOnly": true
+        "allowSharedKeyAccess": true,
+        "supportsHttpsTrafficOnly": true,
+        "accessTier": "Hot"
       }
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "apiVersion": "2023-01-01",
+      "name": "storagevaultwarden/default/",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', 'storagevaultwarden')]"
+      ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
@@ -68,7 +78,12 @@
       "location": "[parameters('location')]",
       "properties": {
         "sku": { "name": "PerGB2018" },
-        "retentionInDays": 30
+        "retentionInDays": 30,
+        "workspaceCapping": {
+          "dailyQuotaGb": 1
+        },
+        "publicNetworkAccessForIngestion": "Enabled",
+        "publicNetworkAccessForQuery": "Enabled"
       }
     },
     {
@@ -113,6 +128,10 @@
         "configuration": {
           "secrets": [
             {
+              "name": "fileshare-connectionstring",
+              "value": "[format('DefaultEndpointsProtocol=https;AccountName=storagevaultwarden;EndpointSuffix={0};AccountKey={1}', environment().suffixes.storage, listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storagevaultwarden'), '2023-01-01').keys[0].value)]"
+            },
+            {
               "name": "admintoken",
               "value": "[parameters('adminToken')]"
             },
@@ -121,6 +140,7 @@
               "value": "[parameters('smtpPassword')]"
             }
           ],
+          "activeRevisionsMode": "Single",
           "ingress": {
             "external": true,
             "allowInsecure": false,
@@ -145,8 +165,16 @@
               },
               "env": [
                 {
-                  "name": "ENABLE_DB_WAL",
+                  "name": "AZURE_STORAGEFILE_CONNECTIONSTRING",
+                  "secretRef": "fileshare-connectionstring"
+                },
+                {
+                  "name": "SIGNUPS_ALLOWED",
                   "value": "false"
+                },
+                {
+                  "name": "ENABLE_DB_WAL",
+                  "value": "true"
                 },
                 {
                   "name": "ADMIN_TOKEN",
@@ -175,6 +203,10 @@
                 {
                   "name": "SMTP_PASSWORD",
                   "secretRef": "smtppassword"
+                },
+                {
+                  "name": "SHOW_PASSWORD_HINT",
+                  "value": "false"
                 }
               ],
               "volumeMounts": [
