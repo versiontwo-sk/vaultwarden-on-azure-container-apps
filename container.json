@@ -44,18 +44,6 @@
   },
   "resources": [
     {
-      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
-      "apiVersion": "2023-01-01",
-      "name": "[format('{0}/{1}/{2}', 'stgvaultwardenv2pass', 'default', 'vaultwarden')]",
-      "properties": {
-        "enabledProtocols": "SMB",
-        "shareQuota": 1024
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwardenv2pass')]"
-      ]
-    },
-    {
       "type": "Microsoft.App/managedEnvironments/storages",
       "apiVersion": "2023-05-01",
       "name": "[format('{0}/vaultwarden', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
@@ -63,12 +51,12 @@
         "azureFile": {
           "accessMode": "ReadWrite",
           "shareName": "vaultwarden",
-          "accountName": "stgvaultwardenv2pass",
-          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwardenv2pass'), '2023-01-01').keys[0].value]"
+          "accountName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName'))), '2023-01-01').keys[0].value]"
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', 'stgvaultwardenv2pass', 'default', 'vaultwarden')]",
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
         "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]"
       ]
     },
@@ -157,7 +145,7 @@
           "volumes": [
             {
               "name": "vaultwarden",
-              "storageName": "vaultwarden",
+              "storageName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
               "storageType": "AzureFile"
             }
           ]
