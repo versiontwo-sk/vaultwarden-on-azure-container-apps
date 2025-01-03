@@ -49,18 +49,8 @@
       "properties": {
         "allowBlobPublicAccess": true,
         "minimumTlsVersion": "TLS1_2",
-        "allowSharedKeyAccess": true,
-        "supportsHttpsTrafficOnly": true,
-        "accessTier": "Hot"
+        "supportsHttpsTrafficOnly": true
       }
-    },
-    {
-      "type": "Microsoft.Storage/storageAccounts/fileServices",
-      "apiVersion": "2023-01-01",
-      "name": "storagevaultwarden/default/",
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', 'storagevaultwarden')]"
-      ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
@@ -78,12 +68,7 @@
       "location": "[parameters('location')]",
       "properties": {
         "sku": { "name": "PerGB2018" },
-        "retentionInDays": 30,
-        "workspaceCapping": {
-          "dailyQuotaGb": 1
-        },
-        "publicNetworkAccessForIngestion": "Enabled",
-        "publicNetworkAccessForQuery": "Enabled"
+        "retentionInDays": 30
       }
     },
     {
@@ -140,7 +125,6 @@
               "value": "[parameters('smtpPassword')]"
             }
           ],
-          "activeRevisionsMode": "Single",
           "ingress": {
             "external": true,
             "allowInsecure": false,
@@ -174,7 +158,7 @@
                 },
                 {
                   "name": "ENABLE_DB_WAL",
-                  "value": "true"
+                  "value": "false"
                 },
                 {
                   "name": "ADMIN_TOKEN",
