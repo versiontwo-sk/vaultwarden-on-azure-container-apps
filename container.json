@@ -46,18 +46,18 @@
     {
       "type": "Microsoft.App/managedEnvironments/storages",
       "apiVersion": "2023-05-01",
-      "name": "[format('{0}/vaultwarden', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+      "name": "[format('{0}/vaultwarden', 'managedenv-v2pass-vaultwarden')]",
       "properties": {
         "azureFile": {
           "accessMode": "ReadWrite",
           "shareName": "vaultwarden",
-          "accountName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
-          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName'))), '2023-01-01').keys[0].value]"
+          "accountName": "stgvaultwardenv2pass",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwardenv2pass'), '2023-01-01').keys[0].value]"
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
-        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]"
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', 'stgvaultwardenv2pass', 'default', 'vaultwarden')]",
+        "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-v2pass-vaultwarden')]"
       ]
     },
     {
@@ -66,7 +66,7 @@
       "name": "[format('vaultwarden{0}', parameters('baseName'))]",
       "location": "[parameters('location')]",
       "properties": {
-        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-v2pass-vaultwarden')]",
         "configuration": {
           "secrets": [
             {
@@ -152,7 +152,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]"
+        "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedenv-v2pass-vaultwarden/vaultwarden')]"
       ]
     }
   ]
