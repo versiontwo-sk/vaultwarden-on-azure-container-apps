@@ -7,10 +7,6 @@
       "defaultValue": "westeurope",
       "metadata": { "description": "The Azure region to install it." }
     },
-    "baseName": {
-      "type": "string",
-      "metadata": { "description": "Base name for all resources." }
-    },
     "adminToken": {
       "type": "securestring",
       "metadata": { "description": "The password to access the /admin page." }
@@ -44,16 +40,9 @@
   },
   "resources": [
     {
-      "type": "Microsoft.OperationalInsights/workspaces",
-      "apiVersion": "2022-10-01",
-      "name": "[format('law{0}', parameters('baseName'))]",
-      "location": "[parameters('location')]",
-      "properties": { "sku": { "name": "PerGB2018" }, "retentionInDays": 30 }
-    },
-    {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-01-01",
-      "name": "[format('stgvaultwarden{0}', parameters('baseName'))]",
+      "name": "stgvaultwarden",
       "location": "[parameters('location')]",
       "kind": "StorageV2",
       "sku": { "name": "Standard_LRS" },
@@ -64,64 +53,63 @@
       }
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/fileServices",
+      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
       "apiVersion": "2023-01-01",
-      "name": "[format('{0}/{1}', format('stgvaultwarden{0}', parameters('baseName')), 'default')]",
+      "name": "stgvaultwarden/default/vaultwarden",
+      "properties": { "enabledProtocols": "SMB", "shareQuota": 1024 },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName')))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwarden')]"
       ]
     },
     {
-      "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
-      "apiVersion": "2023-01-01",
-      "name": "[format('{0}/{1}/{2}', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
-      "properties": { "enabledProtocols": "SMB", "shareQuota": 1024 },
-      "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices', format('stgvaultwarden{0}', parameters('baseName')), 'default')]"
-      ]
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "vaultwardenlaw",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": { "name": "PerGB2018" },
+        "retentionInDays": 30
+      }
     },
     {
       "type": "Microsoft.App/managedEnvironments",
       "apiVersion": "2023-05-01",
-      "name": "[format('managedenv-{0}-vaultwarden', parameters('baseName'))]",
+      "name": "managedenv-vaultwarden",
       "location": "[parameters('location')]",
       "properties": {
         "appLogsConfiguration": {
           "destination": "log-analytics",
           "logAnalyticsConfiguration": {
-            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('law{0}', parameters('baseName'))), '2022-10-01').customerId]",
-            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', format('law{0}', parameters('baseName'))), '2022-10-01').primarySharedKey]"
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'vaultwardenlaw'), '2022-10-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', 'vaultwardenlaw'), '2022-10-01').primarySharedKey]"
           }
         }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.OperationalInsights/workspaces', format('law{0}', parameters('baseName')))]"
-      ]
+      }
     },
     {
       "type": "Microsoft.App/managedEnvironments/storages",
       "apiVersion": "2023-05-01",
-      "name": "[format('{0}/{1}', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]",
+      "name": "managedenv-vaultwarden/vaultwarden",
       "properties": {
         "azureFile": {
           "accessMode": "ReadWrite",
           "shareName": "vaultwarden",
-          "accountName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
-          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', format('stgvaultwarden{0}', parameters('baseName'))), '2023-01-01').keys[0].value]"
+          "accountName": "stgvaultwarden",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwarden'), '2023-01-01').keys[0].value]"
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', format('stgvaultwarden{0}', parameters('baseName')), 'default', 'vaultwarden')]",
-        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]"
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', 'stgvaultwarden', 'default', 'vaultwarden')]",
+        "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]"
       ]
     },
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
-      "name": "[format('vaultwarden{0}', parameters('baseName'))]",
+      "name": "vaultwarden",
       "location": "[parameters('location')]",
       "properties": {
-        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')))]",
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]",
         "configuration": {
           "secrets": [
             {
@@ -161,6 +149,10 @@
                   "value": "true"
                 },
                 {
+                  "name": "ADMIN_TOKEN",
+                  "secretRef": "admintoken"
+                },
+                {
                   "name": "SMTP_HOST",
                   "value": "[parameters('smtpHost')]"
                 },
@@ -196,18 +188,15 @@
           "volumes": [
             {
               "name": "vaultwarden",
-              "storageName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
+              "storageName": "vaultwarden",
               "storageType": "AzureFile"
             }
-          ],
-          "scale": {
-            "minReplicas": 0,
-            "maxReplicas": 1
-          }
+          ]
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments/storages', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]"
+        "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]",
+        "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedenv-vaultwarden/vaultwarden')]"
       ]
     }
   ]
