@@ -145,14 +145,14 @@
           "volumes": [
             {
               "name": "vaultwarden",
-              "storageName": "[format('stgvaultwarden{0}', parameters('baseName'))]",
+              "storageName": "vaultwarden",
               "storageType": "AzureFile"
             }
           ]
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments/storages', format('{0}/vaultwarden', format('managedenv-{0}-vaultwarden', parameters('baseName'))))]"
+        "[resourceId('Microsoft.App/managedEnvironments', format('managedenv-{0}-vaultwarden', parameters('baseName')), 'vaultwarden')]"
       ]
     }
   ]
