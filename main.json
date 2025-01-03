@@ -47,7 +47,7 @@
       "kind": "StorageV2",
       "sku": { "name": "Standard_LRS" },
       "properties": {
-        "allowBlobPublicAccess": false,
+        "allowBlobPublicAccess": true,
         "minimumTlsVersion": "TLS1_2",
         "supportsHttpsTrafficOnly": true
       }
@@ -132,6 +132,10 @@
                 "latestRevision": true
               }
             ]
+          },
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 1
           }
         },
         "template": {
