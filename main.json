@@ -5,7 +5,7 @@
     "location": {
       "type": "string",
       "defaultValue": "westeurope",
-      "metadata": { "description": "The Azure region to install it." }
+      "metadata": { "description": "The Azure region to install resources." }
     },
     "adminToken": {
       "type": "securestring",
@@ -42,7 +42,7 @@
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2023-01-01",
-      "name": "stgvaultwarden",
+      "name": "storageVaultWarden",
       "location": "[parameters('location')]",
       "kind": "StorageV2",
       "sku": { "name": "Standard_LRS" },
@@ -55,16 +55,16 @@
     {
       "type": "Microsoft.Storage/storageAccounts/fileServices/shares",
       "apiVersion": "2023-01-01",
-      "name": "stgvaultwarden/default/vaultwarden",
+      "name": "storageVaultWarden/default/vaultwardenShare",
       "properties": { "enabledProtocols": "SMB", "shareQuota": 1024 },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwarden')]"
+        "[resourceId('Microsoft.Storage/storageAccounts', 'storageVaultWarden')]"
       ]
     },
     {
       "type": "Microsoft.OperationalInsights/workspaces",
       "apiVersion": "2022-10-01",
-      "name": "vaultwardenlaw",
+      "name": "vaultWardenLogAnalytics",
       "location": "[parameters('location')]",
       "properties": {
         "sku": { "name": "PerGB2018" },
@@ -74,14 +74,14 @@
     {
       "type": "Microsoft.App/managedEnvironments",
       "apiVersion": "2023-05-01",
-      "name": "managedenv-vaultwarden",
+      "name": "managedEnvironmentVaultWarden",
       "location": "[parameters('location')]",
       "properties": {
         "appLogsConfiguration": {
           "destination": "log-analytics",
           "logAnalyticsConfiguration": {
-            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'vaultwardenlaw'), '2022-10-01').customerId]",
-            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', 'vaultwardenlaw'), '2022-10-01').primarySharedKey]"
+            "customerId": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', 'vaultWardenLogAnalytics'), '2022-10-01').customerId]",
+            "sharedKey": "[listKeys(resourceId('Microsoft.OperationalInsights/workspaces', 'vaultWardenLogAnalytics'), '2022-10-01').primarySharedKey]"
           }
         }
       }
@@ -89,27 +89,27 @@
     {
       "type": "Microsoft.App/managedEnvironments/storages",
       "apiVersion": "2023-05-01",
-      "name": "managedenv-vaultwarden/vaultwarden",
+      "name": "managedEnvironmentVaultWarden/vaultwardenStorage",
       "properties": {
         "azureFile": {
           "accessMode": "ReadWrite",
-          "shareName": "vaultwarden",
-          "accountName": "stgvaultwarden",
-          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', 'stgvaultwarden'), '2023-01-01').keys[0].value]"
+          "shareName": "vaultwardenShare",
+          "accountName": "storageVaultWarden",
+          "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', 'storageVaultWarden'), '2023-01-01').keys[0].value]"
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', 'stgvaultwarden', 'default', 'vaultwarden')]",
-        "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]"
+        "[resourceId('Microsoft.Storage/storageAccounts/fileServices/shares', 'storageVaultWarden', 'default', 'vaultwardenShare')]",
+        "[resourceId('Microsoft.App/managedEnvironments', 'managedEnvironmentVaultWarden')]"
       ]
     },
     {
       "type": "Microsoft.App/containerApps",
       "apiVersion": "2023-05-01",
-      "name": "vaultwarden",
+      "name": "vaultWardenApp",
       "location": "[parameters('location')]",
       "properties": {
-        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]",
+        "environmentId": "[resourceId('Microsoft.App/managedEnvironments', 'managedEnvironmentVaultWarden')]",
         "configuration": {
           "secrets": [
             {
@@ -137,7 +137,7 @@
         "template": {
           "containers": [
             {
-              "name": "vaultwarden",
+              "name": "vaultwardenContainer",
               "image": "docker.io/vaultwarden/server:latest",
               "resources": {
                 "cpu": "0.25",
@@ -179,7 +179,7 @@
               ],
               "volumeMounts": [
                 {
-                  "volumeName": "vaultwarden",
+                  "volumeName": "vaultwardenStorage",
                   "mountPath": "/data"
                 }
               ]
@@ -187,16 +187,16 @@
           ],
           "volumes": [
             {
-              "name": "vaultwarden",
-              "storageName": "vaultwarden",
+              "name": "vaultwardenStorage",
+              "storageName": "vaultwardenStorage",
               "storageType": "AzureFile"
             }
           ]
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-vaultwarden')]",
-        "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedenv-vaultwarden/vaultwarden')]"
+        "[resourceId('Microsoft.App/managedEnvironments', 'managedEnvironmentVaultWarden')]",
+        "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedEnvironmentVaultWarden/vaultwardenStorage')]"
       ]
     }
   ]
