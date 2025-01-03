@@ -125,13 +125,7 @@
             "external": true,
             "allowInsecure": false,
             "targetPort": 80,
-            "transport": "auto",
-            "traffic": [
-              {
-                "weight": 100,
-                "latestRevision": true
-              }
-            ]
+            "transport": "auto"
           },
           "scale": {
             "minReplicas": 0,
