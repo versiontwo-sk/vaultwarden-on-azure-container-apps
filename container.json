@@ -152,6 +152,7 @@
         }
       },
       "dependsOn": [
+        "[resourceId('Microsoft.App/managedEnvironments', 'managedenv-v2pass-vaultwarden')]",
         "[resourceId('Microsoft.App/managedEnvironments/storages', 'managedenv-v2pass-vaultwarden/vaultwarden')]"
       ]
     }
